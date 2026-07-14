@@ -42,11 +42,28 @@ public sealed class HtmlTimeSeriesReportGenerator : ITimeSeriesReportGenerator
         {
             var label = point.AsOf.ToString("yyyy-MM-dd", inv);
             sb.AppendLine("    <details class=\"mb-3\" open>");
+            sb.AppendLine("      <section data-filter-scope>");
             sb.Append("      <summary class=\"fw-semibold fs-5 mb-2\">")
                 .Append(WebUtility.HtmlEncode(label))
                 .Append(" <span class=\"badge bg-secondary fw-normal\">")
                 .Append(WebUtility.HtmlEncode(point.Files.Count.ToString(inv)))
                 .AppendLine(" files</span></summary>");
+            sb.AppendLine("      <div class=\"report-filters p-3 mb-3\" data-table-filters>");
+            sb.AppendLine("        <div class=\"d-flex flex-column flex-lg-row gap-3 align-items-start align-items-lg-end\">");
+            sb.AppendLine("          <div>");
+            sb.AppendLine("            <label class=\"filter-label d-block mb-1\" for=\"filter-file-" + label + "\">Class / filename contains</label>");
+            sb.AppendLine("            <input id=\"filter-file-" + label + "\" type=\"search\" class=\"form-control form-control-sm\" data-filter-file placeholder=\"e.g. BillingService\" />");
+            sb.AppendLine("          </div>");
+            sb.AppendLine("          <div>");
+            sb.AppendLine("            <label class=\"filter-label d-block mb-1\" for=\"filter-coverage-gt-" + label + "\">Coverage &gt; (%)</label>");
+            sb.AppendLine("            <input id=\"filter-coverage-gt-" + label + "\" type=\"number\" step=\"0.01\" min=\"0\" max=\"100\" class=\"form-control form-control-sm\" data-filter-coverage-gt placeholder=\"e.g. 70\" />");
+            sb.AppendLine("          </div>");
+            sb.AppendLine("          <div>");
+            sb.AppendLine("            <label class=\"filter-label d-block mb-1\" for=\"filter-coverage-lt-" + label + "\">Coverage &lt; (%)</label>");
+            sb.AppendLine("            <input id=\"filter-coverage-lt-" + label + "\" type=\"number\" step=\"0.01\" min=\"0\" max=\"100\" class=\"form-control form-control-sm\" data-filter-coverage-lt placeholder=\"e.g. 30\" />");
+            sb.AppendLine("          </div>");
+            sb.AppendLine("        </div>");
+            sb.AppendLine("      </div>");
             sb.AppendLine("      <div class=\"table-responsive shadow-sm bg-white rounded\">");
             sb.AppendLine("        <table class=\"table table-striped table-hover table-sm table-bordered align-middle mb-0\" data-sortable=\"true\">");
             sb.AppendLine("          <thead class=\"table-dark\">");
@@ -102,6 +119,7 @@ public sealed class HtmlTimeSeriesReportGenerator : ITimeSeriesReportGenerator
             sb.AppendLine("          </tbody>");
             sb.AppendLine("        </table>");
             sb.AppendLine("      </div>");
+            sb.AppendLine("      </section>");
             sb.AppendLine("    </details>");
         }
 

@@ -80,5 +80,11 @@ public class GoldenChurnReportTests
         Assert.Contains("data-sortable=\"true\"", html);
         Assert.Contains("data-sort-type=\"number\"><button", html);
         Assert.Contains("querySelectorAll('table[data-sortable=\"true\"]')", html);
+        Assert.Contains("data-filter-scope", html);
+        Assert.Contains("data-table-filters", html);
+        Assert.Contains("data-filter-file", html);
+        Assert.Contains("data-filter-coverage-gt", html);
+        Assert.Contains("data-filter-coverage-lt", html);
+        Assert.Contains("const applyFilters = () =>", html);
     }
 }
