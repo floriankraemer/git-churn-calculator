@@ -1,0 +1,47 @@
+---
+description: Test-driven development workflow; run tests and tools in the dev container
+alwaysApply: true
+---
+
+# TDD and Container Execution
+
+## Test-driven development
+
+Follow **Red → Green → Refactor** for every behavior change:
+
+1. **Red** — Write a failing xUnit test first (`[Fact]` or `[Theory]`). Name tests `MethodName_Scenario_ExpectedOutcome`. Use NSubstitute for interfaces (`IGitDataProvider`, `IChurnCalculator`, etc.).
+2. **Green** — Implement the smallest change in production code to pass.
+3. **Refactor** — Clean up while tests stay green.
+
+Place tests in the matching project:
+
+| Production | Tests |
+|------------|-------|
+| `GitChurnCalculator/` | `GitChurnCalculator.Tests/` |
+| `GitChurnCalculator.Console/` | `GitChurnCalculator.Console.Tests/` |
+
+Do not add production code without a test that drove it (except trivial wiring). After each cycle, run the test suite before moving on.
+
+## Always run in the container
+
+**Never** invoke `dotnet test`, `dotnet build`, `dotnet tool`, or Stryker directly on the host. Use **Makefile targets** — they re-exec inside the `dev` container (`compose.yaml` / `Dockerfile`, repo bind-mounted at `/src`):
+
+| Task | Command |
+|------|---------|
+| Run tests | `make test` |
+| Full CI parity | `make ci` |
+| Coverage + HTML | `make coverage` |
+| Mutation testing | `make mutation-test` |
+| Build | `make build` or `make build-release` |
+
+The Makefile auto-detects `docker compose` or `podman compose`. Override with `CONTAINER_RUNNER="podman compose"` if needed.
+
+**First-time or after Dockerfile changes:** `docker compose build` (or `podman compose build`).
+
+**Escape hatch only** when already inside the container: `IN_CONTAINER=1 make test`.
+
+On Windows without `make`, use WSL/Git Bash or run the equivalent: `docker compose run --rm dev make test`.
+
+## Agent shell discipline
+
+When verifying changes, always use `make` targets from the repository root — not bare `dotnet` commands. Report test output from container runs.
