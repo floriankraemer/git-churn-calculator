@@ -79,6 +79,34 @@ Each analysis point receives an **`AsOf`** date (the bucket end). The tool passe
 
 The tool executes **one full set of git queries per time point**. For a weekly series covering one year that is approximately 52 × 11 = 572 `git log` invocations (including one `--numstat` pass per bucket for line totals). On large repositories or long date ranges this can take several minutes.
 
+## Interpreting the Churn Risk Score
+
+There is no universal threshold that separates "good" from "bad" — the right numbers depend heavily on your team size, release cadence, codebase maturity, and what you are trying to find. The guidance below describes how the score behaves and offers starting points you can adjust.
+
+### What the score captures
+
+A **high score** means a file is changed frequently by many different people and (when coverage data is used) is poorly tested. A **low score** means the file is stable, has few authors, or is well-covered — or some combination of the three.
+
+The score is **unbounded above zero**. A file touched once per week by a single author with no tests scores `1.0`; a file touched ten times per week by five authors with 20 % coverage scores `10 × 5 × 0.80 = 40.0`.
+
+### Relative ranking is usually more useful than absolute values
+
+Because the score scale depends on your project's commit velocity and team size, comparing files **within the same repository and time window** is far more actionable than comparing numbers across different projects.
+
+Practical approaches:
+
+- **Sort descending and focus on the top N** — the files at the top of the list are your highest-priority review targets regardless of the raw number.
+- **Watch the score over time** — a file whose score is climbing week-over-week deserves attention even if its absolute value is modest.
+- **Use the distribution** — if 90 % of files score below 5 and a handful score above 50, those outliers are worth investigating first.
+
+### Factors that shift the thresholds
+
+- **Small, active teams** produce higher scores naturally because a small number of authors each contribute many commits. Normalise expectations accordingly.
+- **Generated or vendor files** often have very high line-change counts but are not meaningful churn. Exclude them with path filters if they dominate the results.
+- **Long-lived repositories** accumulate a high `TotalCommits` for core files — this is expected for foundational modules. Compare against files of similar age and purpose.
+- **Coverage data absent** — without `--coverage`, two files with identical commit velocity and author counts will score equally even if one has 100 % tests. Add coverage data to make the score reflect test quality.
+- **New files** have a short history, so `AgeDays` is small and `ChangesPerWeek` can be artificially high in the first few weeks. Consider filtering files younger than a threshold when looking for structural hotspots.
+
 ## Cobertura coverage mapping
 
 The tool maps Cobertura XML `<class filename="...">` entries to git-tracked files using:

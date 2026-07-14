@@ -56,6 +56,7 @@ public sealed class SarifChurnReportGenerator : IChurnReportGenerator
                 {
                     ["churnRiskScore"] = r.ChurnRiskScore,
                     ["totalCommits"] = r.TotalCommits,
+                    ["totalLines"] = r.TotalLines,
                     ["totalUniqueAuthors"] = r.TotalUniqueAuthors,
                     ["coveragePercent"] = r.CoveragePercent,
                     ["changesPerWeek"] = r.ChangesPerWeek,

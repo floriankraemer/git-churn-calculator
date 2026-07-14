@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Buffers;
 using GitChurnCalculator.Models;
 
 namespace GitChurnCalculator.Services;
@@ -193,6 +194,22 @@ public sealed class GitProcessDataProvider : IGitDataProvider
         return ParseLineChangeTotalsFromNumstatLog(output);
     }
 
+    public Task<Dictionary<string, int>> GetTotalLinesAsync(string repoPath, CancellationToken ct = default) =>
+        GetTotalLinesAtRevisionAsync(repoPath, "HEAD", ct);
+
+    public async Task<Dictionary<string, int>> GetTotalLinesUntilAsync(string repoPath, DateTime until, CancellationToken ct = default)
+    {
+        var rev = (await RunGitAsync(
+            repoPath,
+            $"rev-list -1 --before=\"{FormatLogDate(until)} 23:59:59\" HEAD",
+            ct)).Trim();
+
+        if (rev.Length == 0)
+            return new Dictionary<string, int>(StringComparer.Ordinal);
+
+        return await GetTotalLinesAtRevisionAsync(repoPath, rev, ct);
+    }
+
     /// <summary>
     /// Parses <c>git log --numstat</c> output: lines are <c>added\\tremoved\\tpath</c>. Binary rows use <c>-</c> for counts.
     /// </summary>
@@ -228,6 +245,167 @@ public sealed class GitProcessDataProvider : IGitDataProvider
 
     private static string NumstatLogArgs(string dateClause) =>
         $"-c core.quotepath=false log{dateClause} --pretty=format: --numstat";
+
+    private static async Task<Dictionary<string, int>> GetTotalLinesAtRevisionAsync(
+        string repoPath,
+        string revision,
+        CancellationToken ct)
+    {
+        var filesOutput = await RunGitAsync(
+            repoPath,
+            $"-c core.quotepath=false ls-tree -r --name-only --full-tree {revision}",
+            ct);
+
+        var paths = filesOutput
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(static line => line.Trim())
+            .Where(static line => line.Length > 0)
+            .ToList();
+
+        if (paths.Count == 0)
+            return new Dictionary<string, int>(StringComparer.Ordinal);
+
+        var objectSpecs = paths.Select(path => $"{revision}:{path}");
+        return await ReadLineCountsWithBatchCatFileAsync(repoPath, objectSpecs, paths, ct);
+    }
+
+    private static async Task<Dictionary<string, int>> ReadLineCountsWithBatchCatFileAsync(
+        string repoPath,
+        IEnumerable<string> objectSpecs,
+        IReadOnlyList<string> paths,
+        CancellationToken ct)
+    {
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = "cat-file --batch",
+            WorkingDirectory = repoPath,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+
+        process.Start();
+
+        var errorTask = process.StandardError.ReadToEndAsync(ct);
+
+        await using (var stdin = process.StandardInput)
+        {
+            foreach (var spec in objectSpecs)
+                await stdin.WriteLineAsync(spec.AsMemory(), ct);
+        }
+
+        var stdout = process.StandardOutput.BaseStream;
+        var result = new Dictionary<string, int>(paths.Count, StringComparer.Ordinal);
+
+        foreach (var path in paths)
+        {
+            var header = await ReadAsciiLineAsync(stdout, ct)
+                ?? throw new InvalidOperationException("Unexpected end of git cat-file output.");
+
+            if (header.EndsWith(" missing", StringComparison.Ordinal))
+            {
+                result[path] = 0;
+                continue;
+            }
+
+            var parts = header.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3 ||
+                !int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var size))
+            {
+                throw new InvalidOperationException($"Unexpected git cat-file header: '{header}'.");
+            }
+
+            result[path] = await CountLinesFromObjectPayloadAsync(stdout, size, ct);
+        }
+
+        await process.WaitForExitAsync(ct);
+        if (process.ExitCode != 0)
+        {
+            var error = await errorTask;
+            throw new InvalidOperationException($"git cat-file --batch failed (exit code {process.ExitCode}): {error}");
+        }
+
+        return result;
+    }
+
+    private static async Task<string?> ReadAsciiLineAsync(Stream stream, CancellationToken ct)
+    {
+        using var buffer = new MemoryStream();
+        var one = new byte[1];
+
+        while (true)
+        {
+            var read = await stream.ReadAsync(one.AsMemory(0, 1), ct);
+            if (read == 0)
+            {
+                if (buffer.Length == 0)
+                    return null;
+                break;
+            }
+
+            if (one[0] == (byte)'\n')
+                break;
+
+            buffer.WriteByte(one[0]);
+        }
+
+        var bytes = buffer.ToArray();
+        if (bytes.Length > 0 && bytes[^1] == (byte)'\r')
+            Array.Resize(ref bytes, bytes.Length - 1);
+
+        return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static async Task<int> CountLinesFromObjectPayloadAsync(Stream stream, int size, CancellationToken ct)
+    {
+        if (size < 0)
+            throw new InvalidOperationException($"Invalid object size '{size}' from git cat-file output.");
+
+        var remaining = size;
+        var newlineCount = 0;
+        byte lastByte = 0;
+
+        var buffer = ArrayPool<byte>.Shared.Rent(Math.Min(64 * 1024, Math.Max(size, 1)));
+        try
+        {
+            while (remaining > 0)
+            {
+                var toRead = Math.Min(buffer.Length, remaining);
+                var read = await stream.ReadAsync(buffer.AsMemory(0, toRead), ct);
+                if (read == 0)
+                    throw new InvalidOperationException("Unexpected end of stream while reading git object content.");
+
+                for (var i = 0; i < read; i++)
+                {
+                    if (buffer[i] == (byte)'\n')
+                        newlineCount++;
+                }
+
+                lastByte = buffer[read - 1];
+                remaining -= read;
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        var delimiter = new byte[1];
+        var delimiterRead = await stream.ReadAsync(delimiter.AsMemory(0, 1), ct);
+        if (delimiterRead == 0)
+            throw new InvalidOperationException("Unexpected end of stream after git object content.");
+
+        if (size == 0)
+            return 0;
+
+        return newlineCount + (lastByte == (byte)'\n' ? 0 : 1);
+    }
 
     private static string FormatLogDate(DateTime value) =>
         value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
