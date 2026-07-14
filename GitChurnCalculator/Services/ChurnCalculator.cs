@@ -123,9 +123,9 @@ public sealed class ChurnCalculator : IChurnCalculator
 
             var totalUniqueAuthors = authorsAll.GetValueOrDefault(file, 0);
 
-            double? coveragePercent = coverageMap?.GetValueOrDefault(file, 0.0);
-            if (coverageMap is null)
-                coveragePercent = null;
+            double? coveragePercent = null;
+            if (coverageMap is not null && coverageMap.TryGetValue(file, out var mappedCoverage))
+                coveragePercent = mappedCoverage;
 
             var churnRiskScore = CalculateChurnRiskScore(
                 changesPerWeek, totalUniqueAuthors, coveragePercent);

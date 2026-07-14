@@ -78,6 +78,14 @@ public sealed class ChurnAnalysisApp
         var results = await _calculator.AnalyzeAsync(options);
         global::System.Console.Error.WriteLine($"Found {results.Count} files with commit history.");
 
+        if (coverage is not null)
+        {
+            var matchedCoverageCount = results.Count(r => r.CoveragePercent.HasValue);
+            var nonZeroCoverageCount = results.Count(r => r.CoveragePercent is > 0);
+            global::System.Console.Error.WriteLine(
+                $"Coverage mapped to {matchedCoverageCount} files ({nonZeroCoverageCount} with non-zero coverage).");
+        }
+
         var text = generator.Generate(results, repo.FullName);
         await ChurnOutputWriter.WriteAsync(output, text);
     }

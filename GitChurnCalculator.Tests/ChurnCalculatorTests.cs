@@ -312,6 +312,52 @@ public class ChurnCalculatorTests
         Assert.Null(results[0].CoveragePercent);
     }
 
+    [Fact]
+    public async Task AnalyzeAsync_WithCoverage_UnmatchedFile_CoveragePercentIsNull()
+    {
+        var gitProvider = Substitute.For<IGitDataProvider>();
+        var coverageParser = Substitute.For<ICoverageParser>();
+        var repoPath = "/fake/repo";
+
+        gitProvider.GetTrackedFilesAsync(repoPath, Arg.Any<CancellationToken>())
+            .Returns(new List<string> { "tracked.cs" });
+
+        gitProvider.GetCommitCountsAsync(repoPath, Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<string, int> { ["tracked.cs"] = 10 });
+
+        var now = DateTime.UtcNow;
+        var dates = new Dictionary<string, DateTime> { ["tracked.cs"] = now.AddDays(-14) };
+        gitProvider.GetFirstCommitDatesAsync(repoPath, Arg.Any<CancellationToken>()).Returns(dates);
+        gitProvider.GetLastCommitDatesAsync(repoPath, Arg.Any<CancellationToken>()).Returns(dates);
+        gitProvider.GetUniqueAuthorCountsAsync(repoPath, Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<string, int> { ["tracked.cs"] = 2 });
+
+        var empty = new Dictionary<string, int>();
+        gitProvider.GetCommitCountsSinceAsync(repoPath, Arg.Any<DateTime>(), Arg.Any<CancellationToken>()).Returns(empty);
+        gitProvider.GetUniqueAuthorCountsSinceAsync(repoPath, Arg.Any<DateTime>(), Arg.Any<CancellationToken>()).Returns(empty);
+        gitProvider.GetLineChangeTotalsAsync(repoPath, Arg.Any<CancellationToken>()).Returns(EmptyLineTotals);
+
+        coverageParser.Parse("/fake/coverage.xml").Returns(new Dictionary<string, double>
+        {
+            ["other.cs"] = 75.0,
+        });
+        coverageParser.MapToTrackedFiles(Arg.Any<Dictionary<string, double>>(), Arg.Any<IReadOnlyList<string>>())
+            .Returns(new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["other.cs"] = 75.0,
+            });
+
+        var calculator = new ChurnCalculator(gitProvider, coverageParser);
+        var results = await calculator.AnalyzeAsync(new ChurnAnalysisOptions
+        {
+            RepositoryPath = repoPath,
+            CoverageFilePath = "/fake/coverage.xml",
+        });
+
+        Assert.Single(results);
+        Assert.Null(results[0].CoveragePercent);
+    }
+
     // ── AsOf / time series tests ─────────────────────────────────────────────
 
     [Fact]
