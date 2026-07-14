@@ -160,6 +160,19 @@ public class CoberturaParserTests
     }
 
     [Fact]
+    public void MapToGitFiles_ReportsProgressInBatches()
+    {
+        var coverage = Enumerable.Range(1, 250)
+            .ToDictionary(i => $"src/File{i}.cs", i => (double)i, StringComparer.OrdinalIgnoreCase);
+        var gitFiles = coverage.Keys.ToList();
+        var reports = new List<(int Processed, int Total)>();
+
+        CoveragePathMatcher.MapToGitFiles(coverage, gitFiles, (processed, total) => reports.Add((processed, total)));
+
+        Assert.Equal([(100, 250), (200, 250), (250, 250)], reports);
+    }
+
+    [Fact]
     public void MapToGitFiles_ExactMatch()
     {
         var coverage = new Dictionary<string, double> { ["src/Foo.cs"] = 80.0 };

@@ -65,6 +65,7 @@ public class ChurnCalculatorProgressTests
 
         Assert.Equal(1, events.Count(e => e.Stage == ChurnProgressStage.CoverageParseCompleted));
         Assert.Equal(1, events.Count(e => e.Stage == ChurnProgressStage.CoverageMappingCompleted));
+        Assert.Contains(events, e => e.Stage == ChurnProgressStage.CoverageMappingInProgress);
 
         var parseEvent = events.Single(e => e.Stage == ChurnProgressStage.CoverageParseCompleted);
         Assert.Equal(1, parseEvent.CompletedSteps);

@@ -11,10 +11,19 @@ public static class CoveragePathMatcher
     /// </summary>
     public static Dictionary<string, double> MapToGitFiles(
         Dictionary<string, double> coverageByPath,
-        IReadOnlyList<string> gitFiles)
+        IReadOnlyList<string> gitFiles) =>
+        MapToGitFiles(coverageByPath, gitFiles, onProgress: null);
+
+    public static Dictionary<string, double> MapToGitFiles(
+        Dictionary<string, double> coverageByPath,
+        IReadOnlyList<string> gitFiles,
+        Action<int, int>? onProgress,
+        int progressBatchSize = 100)
     {
         var index = GitPathMatchIndex.Create(gitFiles);
         var result = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        var total = coverageByPath.Count;
+        var processed = 0;
 
         foreach (var (rawCovPath, percent) in coverageByPath)
         {
@@ -22,6 +31,13 @@ public static class CoveragePathMatcher
 
             if (index.TryMatch(covPath, out var gitMatch))
                 result[gitMatch] = percent;
+
+            processed++;
+            if (onProgress is not null &&
+                (processed % progressBatchSize == 0 || processed == total))
+            {
+                onProgress(processed, total);
+            }
         }
 
         return result;

@@ -1,3 +1,4 @@
+using GitChurnCalculator.Console.Progress;
 using GitChurnCalculator.Console.Reporting;
 using GitChurnCalculator.Models;
 using GitChurnCalculator.Services;
@@ -75,7 +76,7 @@ public sealed class ChurnAnalysisApp
             ExcludePattern = exclude,
         };
 
-        var results = await SpectreChurnProgress.RunSnapshotAsync(
+        var results = await SpectreChurnProgressSession.RunSnapshotAsync(
             _calculator,
             options,
             coverage is not null);
@@ -120,7 +121,7 @@ public sealed class ChurnAnalysisApp
         global::System.Console.Error.WriteLine(
             $"Time series mode: {parsed.GranularityLower} chunks from {parsed.From:yyyy-MM-dd} to {parsed.To:yyyy-MM-dd} ({bucketEnds.Count} points).");
 
-        var points = await SpectreChurnProgress.RunTimeSeriesAsync(
+        var points = await SpectreChurnProgressSession.RunTimeSeriesAsync(
             _calculator,
             repo,
             coverage,

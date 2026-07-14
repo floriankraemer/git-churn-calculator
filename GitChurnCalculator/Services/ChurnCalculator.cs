@@ -22,8 +22,6 @@ public sealed class ChurnCalculator : IChurnCalculator
         IProgress<ChurnProgressEvent>? progress = null,
         CancellationToken ct = default)
     {
-        progress = SynchronizedProgress<ChurnProgressEvent>.Wrap(progress);
-
         var repoPath = options.RepositoryPath;
         var now = options.AsOf ?? DateTime.UtcNow;
         var sevenDaysAgo = now.AddDays(-7);
@@ -140,18 +138,32 @@ public sealed class ChurnCalculator : IChurnCalculator
         if (!string.IsNullOrEmpty(options.CoverageFilePath))
         {
             var rawCoverage = _coverageParser.Parse(options.CoverageFilePath);
+            var coverageEntryCount = rawCoverage.Count;
             progress?.Report(new ChurnProgressEvent(
                 ChurnProgressStage.CoverageParseCompleted,
                 "Coverage parsed",
                 1,
-                CoverageProgressTotalSteps));
+                CoverageProgressTotalSteps,
+                TotalItems: coverageEntryCount));
 
-            coverageMap = _coverageParser.MapToTrackedFiles(rawCoverage, trackedFiles);
+            coverageMap = CoveragePathMatcher.MapToGitFiles(
+                rawCoverage,
+                trackedFiles,
+                (processed, total) => progress?.Report(new ChurnProgressEvent(
+                    ChurnProgressStage.CoverageMappingInProgress,
+                    "Mapping coverage to tracked files",
+                    processed,
+                    total,
+                    processed,
+                    total)));
+
             progress?.Report(new ChurnProgressEvent(
                 ChurnProgressStage.CoverageMappingCompleted,
                 "Coverage mapped to tracked files",
                 2,
-                CoverageProgressTotalSteps));
+                CoverageProgressTotalSteps,
+                ProcessedItems: coverageEntryCount,
+                TotalItems: coverageEntryCount));
         }
 
         var results = new List<FileChurnResult>(trackedFiles.Count);
