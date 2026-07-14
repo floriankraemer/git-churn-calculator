@@ -10,7 +10,7 @@ public sealed class CsvTimeSeriesReportGenerator : ITimeSeriesReportGenerator
     {
         _ = subtitle;
         var sb = new StringBuilder();
-        sb.AppendLine("AsOf,File,TotalCommits,LinesAdded,LinesRemoved,FirstCommitDate,LastCommitDate,AgeDays,ChangesPerWeek,ChangesPerMonth,ChangesPerYear,CommitsLast7Days,CommitsLast30Days,CommitsLast365Days,TotalUniqueAuthors,UniqueAuthorsLast7Days,UniqueAuthorsLast30Days,UniqueAuthorsLast365Days,CoveragePercent,ChurnRiskScore");
+        sb.AppendLine("AsOf,File,TotalCommits,LinesAdded,LinesRemoved,TotalLines,FirstCommitDate,LastCommitDate,AgeDays,ChangesPerWeek,ChangesPerMonth,ChangesPerYear,CommitsLast7Days,CommitsLast30Days,CommitsLast365Days,TotalUniqueAuthors,UniqueAuthorsLast7Days,UniqueAuthorsLast30Days,UniqueAuthorsLast365Days,CoveragePercent,ChurnRiskScore");
 
         foreach (var point in points)
         {
@@ -22,6 +22,7 @@ public sealed class CsvTimeSeriesReportGenerator : ITimeSeriesReportGenerator
                 sb.Append(',').Append(r.TotalCommits);
                 sb.Append(',').Append(r.LinesAdded);
                 sb.Append(',').Append(r.LinesRemoved);
+                sb.Append(',').Append(r.TotalLines?.ToString(CultureInfo.InvariantCulture) ?? "");
                 sb.Append(',').Append(r.FirstCommitDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "");
                 sb.Append(',').Append(r.LastCommitDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "");
                 sb.Append(',').Append(r.AgeDays);
