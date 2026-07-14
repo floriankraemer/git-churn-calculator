@@ -22,6 +22,8 @@ public sealed class ChurnCalculator : IChurnCalculator
         IProgress<ChurnProgressEvent>? progress = null,
         CancellationToken ct = default)
     {
+        progress = SynchronizedProgress<ChurnProgressEvent>.Wrap(progress);
+
         var repoPath = options.RepositoryPath;
         var now = options.AsOf ?? DateTime.UtcNow;
         var sevenDaysAgo = now.AddDays(-7);

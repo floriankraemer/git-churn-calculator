@@ -87,6 +87,42 @@ public class CoberturaParserTests
     }
 
     [Fact]
+    public void Parse_ClassWithManyLineElements_ExtractsLineRateViaStreaming()
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            using (var writer = new StreamWriter(tempFile))
+            {
+                writer.WriteLine("""<?xml version="1.0"?>""");
+                writer.WriteLine("""<coverage line-rate="0.5">""");
+                writer.WriteLine("""  <sources><source>/repo</source></sources>""");
+                writer.WriteLine("""  <packages><package name="pkg" line-rate="0.5" branch-rate="0" complexity="0">""");
+                writer.WriteLine("""    <classes>""");
+                writer.WriteLine("""      <class name="Foo" filename="/repo/src/Foo.cs" line-rate="0.42" branch-rate="0" complexity="0">""");
+                writer.WriteLine("""        <lines>""");
+                for (var i = 1; i <= 10_000; i++)
+                    writer.WriteLine($"""          <line number="{i}" hits="1"/>""");
+                writer.WriteLine("""        </lines>""");
+                writer.WriteLine("""      </class>""");
+                writer.WriteLine("""    </classes>""");
+                writer.WriteLine("""  </package></packages>""");
+                writer.WriteLine("""</coverage>""");
+            }
+
+            var parser = new CoberturaXmlParser();
+            var result = parser.Parse(tempFile);
+
+            Assert.Single(result);
+            Assert.Equal(42.0, result["src/Foo.cs"]);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
     public void Parse_MultipleClassesSameFile_KeepsMaxCoverage()
     {
         var xml = """
