@@ -21,7 +21,6 @@ public class GoldenChurnReportTests
                 TotalCommits = 3,
                 LinesAdded = 247,
                 LinesRemoved = 189,
-                TotalLines = 412,
                 FirstCommitDate = T0.AddDays(-9),
                 LastCommitDate = T0,
                 AgeDays = 9,
@@ -47,10 +46,10 @@ public class GoldenChurnReportTests
         var csv = gen.Generate(GoldenRows(), "ignored");
 
         var expectedHeader =
-            "File,TotalCommits,LinesAdded,LinesRemoved,TotalLines,FirstCommitDate,LastCommitDate,AgeDays,ChangesPerWeek,ChangesPerMonth,ChangesPerYear,CommitsLast7Days,CommitsLast30Days,CommitsLast365Days,TotalUniqueAuthors,UniqueAuthorsLast7Days,UniqueAuthorsLast30Days,UniqueAuthorsLast365Days,CoveragePercent,ChurnRiskScore";
+            "File,TotalCommits,LinesAdded,LinesRemoved,FirstCommitDate,LastCommitDate,AgeDays,ChangesPerWeek,ChangesPerMonth,ChangesPerYear,CommitsLast7Days,CommitsLast30Days,CommitsLast365Days,TotalUniqueAuthors,UniqueAuthorsLast7Days,UniqueAuthorsLast30Days,UniqueAuthorsLast365Days,CoveragePercent,ChurnRiskScore";
         var lines = csv.TrimEnd().Split('\n');
         Assert.Equal(expectedHeader, lines[0].TrimEnd('\r'));
-        Assert.StartsWith("\"src/X.cs\",3,247,189,412,2024-03-01,2024-03-10,9,2.33", lines[1].TrimEnd('\r'), StringComparison.Ordinal);
+        Assert.StartsWith("\"src/X.cs\",3,247,189,2024-03-01,2024-03-10,9,2.33", lines[1].TrimEnd('\r'), StringComparison.Ordinal);
         Assert.EndsWith(",4.6666", lines[1].TrimEnd('\r'), StringComparison.Ordinal);
     }
 
@@ -64,7 +63,6 @@ public class GoldenChurnReportTests
         Assert.Equal("src/X.cs", el.GetProperty("filePath").GetString());
         Assert.Equal(247, el.GetProperty("linesAdded").GetInt32());
         Assert.Equal(189, el.GetProperty("linesRemoved").GetInt32());
-        Assert.Equal(412, el.GetProperty("totalLines").GetInt32());
         Assert.Equal(4.6666, el.GetProperty("churnRiskScore").GetDouble(), 4);
     }
 

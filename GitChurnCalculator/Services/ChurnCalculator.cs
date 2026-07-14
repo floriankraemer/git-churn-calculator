@@ -5,7 +5,7 @@ namespace GitChurnCalculator.Services;
 
 public sealed class ChurnCalculator : IChurnCalculator
 {
-    private const int GitProgressTotalSteps = 13;
+    private const int GitProgressTotalSteps = 12;
     private const int CoverageProgressTotalSteps = 2;
 
     private readonly IGitDataProvider _gitDataProvider;
@@ -52,7 +52,6 @@ public sealed class ChurnCalculator : IChurnCalculator
         Task<Dictionary<string, int>> authors30Task;
         Task<Dictionary<string, int>> authors365Task;
         Task<Dictionary<string, LineChangeTotals>> lineTotalsTask;
-        Task<Dictionary<string, int>> totalLinesTask;
 
         if (options.AsOf.HasValue)
         {
@@ -67,9 +66,6 @@ public sealed class ChurnCalculator : IChurnCalculator
             authors30Task = _gitDataProvider.GetUniqueAuthorCountsSinceUntilAsync(repoPath, thirtyDaysAgo, now, ct);
             authors365Task = _gitDataProvider.GetUniqueAuthorCountsSinceUntilAsync(repoPath, yearAgo, now, ct);
             lineTotalsTask = _gitDataProvider.GetLineChangeTotalsUntilAsync(repoPath, now, ct);
-            totalLinesTask =
-                _gitDataProvider.GetTotalLinesUntilAsync(repoPath, now, ct)
-                ?? Task.FromResult(new Dictionary<string, int>(StringComparer.Ordinal));
         }
         else
         {
@@ -84,9 +80,6 @@ public sealed class ChurnCalculator : IChurnCalculator
             authors30Task = _gitDataProvider.GetUniqueAuthorCountsSinceAsync(repoPath, thirtyDaysAgo, ct);
             authors365Task = _gitDataProvider.GetUniqueAuthorCountsSinceAsync(repoPath, yearAgo, ct);
             lineTotalsTask = _gitDataProvider.GetLineChangeTotalsAsync(repoPath, ct);
-            totalLinesTask =
-                _gitDataProvider.GetTotalLinesAsync(repoPath, ct)
-                ?? Task.FromResult(new Dictionary<string, int>(StringComparer.Ordinal));
         }
 
         var completedGitQueries = 0;
@@ -117,8 +110,7 @@ public sealed class ChurnCalculator : IChurnCalculator
             WrapGitQuery(authors7Task, "Authors (7 days)"),
             WrapGitQuery(authors30Task, "Authors (30 days)"),
             WrapGitQuery(authors365Task, "Authors (365 days)"),
-            WrapGitQuery(lineTotalsTask, "Line change totals"),
-            WrapGitQuery(totalLinesTask, "Total lines"));
+            WrapGitQuery(lineTotalsTask, "Line change totals"));
 
         var commitCounts = commitCountsTask.Result;
         var firstDates = firstDatesTask.Result;
@@ -131,7 +123,6 @@ public sealed class ChurnCalculator : IChurnCalculator
         var authors30 = authors30Task.Result;
         var authors365 = authors365Task.Result;
         var lineTotals = lineTotalsTask.Result;
-        var totalLinesByFile = totalLinesTask.Result ?? new Dictionary<string, int>(StringComparer.Ordinal);
 
         // Parse coverage if provided
         Dictionary<string, double>? coverageMap = null;
@@ -205,7 +196,6 @@ public sealed class ChurnCalculator : IChurnCalculator
                 TotalCommits = totalCommits,
                 LinesAdded = lines.Added,
                 LinesRemoved = lines.Removed,
-                TotalLines = totalLinesByFile.TryGetValue(file, out var totalLines) ? totalLines : null,
                 FirstCommitDate = firstDate != default ? firstDate : null,
                 LastCommitDate = lastDate != default ? lastDate : null,
                 AgeDays = ageDays,

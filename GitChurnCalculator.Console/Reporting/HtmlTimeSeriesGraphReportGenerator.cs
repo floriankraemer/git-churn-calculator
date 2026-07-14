@@ -116,7 +116,6 @@ public sealed class HtmlTimeSeriesGraphReportGenerator : ITimeSeriesReportGenera
                                 ChangesPerWeek = f.ChangesPerWeek,
                                 LinesAdded = f.LinesAdded,
                                 LinesRemoved = f.LinesRemoved,
-                                TotalLines = f.TotalLines,
                                 CoveragePercent = f.CoveragePercent,
                                 LinesAddedAvgPerCommit =
                                     tc > 0 ? Math.Round((double)f.LinesAdded / tc, 2) : null,
@@ -164,7 +163,6 @@ public sealed class HtmlTimeSeriesGraphReportGenerator : ITimeSeriesReportGenera
         sb.AppendLine("          changesPerWeek: point.changesPerWeek,");
         sb.AppendLine("          linesAdded: point.linesAdded,");
         sb.AppendLine("          linesRemoved: point.linesRemoved,");
-        sb.AppendLine("          totalLines: point.totalLines ?? null,");
         sb.AppendLine("          coveragePercent: point.coveragePercent ?? null,");
         sb.AppendLine("          linesAddedAvgPerCommit: point.linesAddedAvgPerCommit ?? null,");
         sb.AppendLine("          linesRemovedAvgPerCommit: point.linesRemovedAvgPerCommit ?? null");
@@ -227,7 +225,6 @@ public sealed class HtmlTimeSeriesGraphReportGenerator : ITimeSeriesReportGenera
         sb.AppendLine("            + `<div>Coverage: ${formatCoverage(point.coveragePercent)}</div>`");
         sb.AppendLine("            + `<div>Lines added (cum.): ${formatInt(point.linesAdded)}</div>`");
         sb.AppendLine("            + `<div>Lines removed (cum.): ${formatInt(point.linesRemoved)}</div>`");
-        sb.AppendLine("            + `<div>Total lines: ${point.totalLines == null ? '—' : formatInt(point.totalLines)}</div>`");
         sb.AppendLine("            + perCommitAvg");
         sb.AppendLine("            + seriesAvgHtml");
         sb.AppendLine("          )");
@@ -330,7 +327,6 @@ internal sealed class TimeSeriesGraphPoint
     public double ChangesPerWeek { get; init; }
     public int LinesAdded { get; init; }
     public int LinesRemoved { get; init; }
-    public int? TotalLines { get; init; }
     public double? CoveragePercent { get; init; }
     public double? LinesAddedAvgPerCommit { get; init; }
     public double? LinesRemovedAvgPerCommit { get; init; }

@@ -78,14 +78,4 @@ public interface IGitDataProvider
     /// Returns per-file cumulative insertions/deletions (<c>--numstat</c>) for commits on or before <paramref name="until"/>.
     /// </summary>
     Task<Dictionary<string, LineChangeTotals>> GetLineChangeTotalsUntilAsync(string repoPath, DateTime until, CancellationToken ct = default);
-
-    /// <summary>
-    /// Returns per-file total line counts at repository HEAD.
-    /// </summary>
-    Task<Dictionary<string, int>> GetTotalLinesAsync(string repoPath, CancellationToken ct = default);
-
-    /// <summary>
-    /// Returns per-file total line counts at the latest commit on or before <paramref name="until"/>.
-    /// </summary>
-    Task<Dictionary<string, int>> GetTotalLinesUntilAsync(string repoPath, DateTime until, CancellationToken ct = default);
 }

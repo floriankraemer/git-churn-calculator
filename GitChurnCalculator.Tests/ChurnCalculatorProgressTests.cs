@@ -7,7 +7,7 @@ namespace GitChurnCalculator.Tests;
 
 public class ChurnCalculatorProgressTests
 {
-    private const int GitProgressTotalSteps = 13;
+    private const int GitProgressTotalSteps = 12;
 
     [Fact]
     public async Task AnalyzeAsync_WithoutCoverage_ReportsGitProgressEvents()
@@ -23,7 +23,7 @@ public class ChurnCalculatorProgressTests
             progress);
 
         Assert.Equal(1, events.Count(e => e.Stage == ChurnProgressStage.TrackedFilesLoaded));
-        Assert.Equal(12, events.Count(e => e.Stage == ChurnProgressStage.GitQueryCompleted));
+        Assert.Equal(11, events.Count(e => e.Stage == ChurnProgressStage.GitQueryCompleted));
         Assert.Empty(events.Where(e => e.Stage is ChurnProgressStage.CoverageParseCompleted
             or ChurnProgressStage.CoverageMappingCompleted));
 
@@ -100,9 +100,6 @@ public class ChurnCalculatorProgressTests
             {
                 ["file.cs"] = new LineChangeTotals(10, 5),
             });
-
-        gitProvider.GetTotalLinesAsync(repoPath, Arg.Any<CancellationToken>())
-            .Returns(new Dictionary<string, int> { ["file.cs"] = 100 });
 
         var empty = new Dictionary<string, int>();
         gitProvider.GetCommitCountsSinceAsync(repoPath, Arg.Any<DateTime>(), Arg.Any<CancellationToken>())

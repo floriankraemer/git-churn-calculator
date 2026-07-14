@@ -5,7 +5,7 @@ namespace GitChurnCalculator.Console.Progress;
 
 public sealed class ChurnProgressReporter
 {
-    private const int GitProgressTotalSteps = 13;
+    private const int GitProgressTotalSteps = 12;
     private const long RefreshThrottleMilliseconds = 75;
 
     private readonly IAnsiConsole _console;

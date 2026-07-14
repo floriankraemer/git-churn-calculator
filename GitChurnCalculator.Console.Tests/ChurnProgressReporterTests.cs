@@ -16,11 +16,11 @@ public class ChurnProgressReporterTests
             ChurnProgressStage.GitQueryCompleted,
             "Commit counts",
             5,
-            13));
+            12));
 
         Assert.Equal("Collecting git history - Commit counts", reporter.State.GitDescription);
         Assert.Equal(5, reporter.State.GitCompletedSteps);
-        Assert.Equal(13, reporter.State.GitTotalSteps);
+        Assert.Equal(12, reporter.State.GitTotalSteps);
     }
 
     [Fact]
@@ -32,12 +32,12 @@ public class ChurnProgressReporterTests
             ChurnProgressStage.GitQueryCompleted,
             "Later",
             8,
-            13)));
+            12)));
         Assert.False(reporter.ApplyProgress(new ChurnProgressEvent(
             ChurnProgressStage.GitQueryCompleted,
             "Earlier",
             3,
-            13)));
+            12)));
 
         Assert.Equal(8, reporter.State.GitCompletedSteps);
     }
@@ -65,16 +65,16 @@ public class ChurnProgressReporterTests
     {
         var reporter = new ChurnProgressReporter(CreateConsole(), hasCoverage: false);
 
-        Parallel.For(1, 13, step =>
+        Parallel.For(1, 12, step =>
         {
             reporter.Report(new ChurnProgressEvent(
                 ChurnProgressStage.GitQueryCompleted,
                 $"Step {step}",
                 step,
-                13));
+                12));
         });
 
-        Assert.Equal(12, reporter.State.GitCompletedSteps);
+        Assert.Equal(11, reporter.State.GitCompletedSteps);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class ChurnProgressReporterTests
             ChurnProgressStage.TrackedFilesLoaded,
             "Tracked files loaded",
             1,
-            13));
+            12));
         reporter.Report(new ChurnProgressEvent(
             ChurnProgressStage.CoverageParseCompleted,
             "Coverage parsed",

@@ -94,7 +94,6 @@ public sealed class HtmlTimeSeriesReportGenerator : ITimeSeriesReportGenerator
             AppendTh(sb, "Total commits", "number");
             AppendTh(sb, "Lines added", "number");
             AppendTh(sb, "Lines removed", "number");
-            AppendTh(sb, "Total lines", "number");
             AppendTh(sb, "First commit", "date");
             AppendTh(sb, "Last commit", "date");
             AppendTh(sb, "Age (days)", "number");
@@ -121,7 +120,6 @@ public sealed class HtmlTimeSeriesReportGenerator : ITimeSeriesReportGenerator
                 AppendTd(sb, r.TotalCommits.ToString(inv));
                 AppendTd(sb, r.LinesAdded.ToString(inv));
                 AppendTd(sb, r.LinesRemoved.ToString(inv));
-                AppendTd(sb, r.TotalLines?.ToString(inv) ?? "—");
                 AppendTd(sb, r.FirstCommitDate?.ToString("yyyy-MM-dd", inv) ?? "");
                 AppendTd(sb, r.LastCommitDate?.ToString("yyyy-MM-dd", inv) ?? "");
                 AppendTd(sb, r.AgeDays.ToString(inv));
