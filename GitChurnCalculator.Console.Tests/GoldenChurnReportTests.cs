@@ -83,8 +83,11 @@ public class GoldenChurnReportTests
         Assert.Contains("data-filter-scope", html);
         Assert.Contains("data-table-filters", html);
         Assert.Contains("data-filter-file", html);
-        Assert.Contains("data-filter-coverage-gt", html);
-        Assert.Contains("data-filter-coverage-lt", html);
+        Assert.Contains("data-filter-coverage-op", html);
+        Assert.Contains("data-filter-coverage-value", html);
+        Assert.Contains("data-filter-churn-op", html);
+        Assert.Contains("data-filter-churn-value", html);
+        Assert.Contains("data-filter-reset", html);
         Assert.Contains("const applyFilters = () =>", html);
     }
 }
