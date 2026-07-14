@@ -5,6 +5,9 @@ namespace GitChurnCalculator.Services;
 
 public sealed class ChurnCalculator : IChurnCalculator
 {
+    private const int GitProgressTotalSteps = 13;
+    private const int CoverageProgressTotalSteps = 2;
+
     private readonly IGitDataProvider _gitDataProvider;
     private readonly ICoverageParser _coverageParser;
 
@@ -16,6 +19,7 @@ public sealed class ChurnCalculator : IChurnCalculator
 
     public async Task<IReadOnlyList<FileChurnResult>> AnalyzeAsync(
         ChurnAnalysisOptions options,
+        IProgress<ChurnProgressEvent>? progress = null,
         CancellationToken ct = default)
     {
         var repoPath = options.RepositoryPath;
@@ -28,6 +32,12 @@ public sealed class ChurnCalculator : IChurnCalculator
             await _gitDataProvider.GetTrackedFilesAsync(repoPath, ct),
             options.IncludePattern,
             options.ExcludePattern);
+
+        progress?.Report(new ChurnProgressEvent(
+            ChurnProgressStage.TrackedFilesLoaded,
+            "Tracked files loaded",
+            1,
+            GitProgressTotalSteps));
 
         // Run independent git queries in parallel.
         // When AsOf is set, use date-bounded variants so history is anchored to that point in time.
@@ -79,11 +89,36 @@ public sealed class ChurnCalculator : IChurnCalculator
                 ?? Task.FromResult(new Dictionary<string, int>(StringComparer.Ordinal));
         }
 
+        var completedGitQueries = 0;
+        Task WrapGitQuery(Task task, string description) =>
+            task.ContinueWith(
+                t =>
+                {
+                    t.GetAwaiter().GetResult();
+                    var completed = Interlocked.Increment(ref completedGitQueries);
+                    progress?.Report(new ChurnProgressEvent(
+                        ChurnProgressStage.GitQueryCompleted,
+                        description,
+                        1 + completed,
+                        GitProgressTotalSteps));
+                },
+                ct,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+
         await Task.WhenAll(
-            commitCountsTask, firstDatesTask, lastDatesTask,
-            commits7Task, commits30Task, commits365Task,
-            authorsAllTask, authors7Task, authors30Task, authors365Task,
-            lineTotalsTask, totalLinesTask);
+            WrapGitQuery(commitCountsTask, "Commit counts"),
+            WrapGitQuery(firstDatesTask, "First commit dates"),
+            WrapGitQuery(lastDatesTask, "Last commit dates"),
+            WrapGitQuery(commits7Task, "Commits (7 days)"),
+            WrapGitQuery(commits30Task, "Commits (30 days)"),
+            WrapGitQuery(commits365Task, "Commits (365 days)"),
+            WrapGitQuery(authorsAllTask, "Authors (all time)"),
+            WrapGitQuery(authors7Task, "Authors (7 days)"),
+            WrapGitQuery(authors30Task, "Authors (30 days)"),
+            WrapGitQuery(authors365Task, "Authors (365 days)"),
+            WrapGitQuery(lineTotalsTask, "Line change totals"),
+            WrapGitQuery(totalLinesTask, "Total lines"));
 
         var commitCounts = commitCountsTask.Result;
         var firstDates = firstDatesTask.Result;
@@ -103,7 +138,18 @@ public sealed class ChurnCalculator : IChurnCalculator
         if (!string.IsNullOrEmpty(options.CoverageFilePath))
         {
             var rawCoverage = _coverageParser.Parse(options.CoverageFilePath);
+            progress?.Report(new ChurnProgressEvent(
+                ChurnProgressStage.CoverageParseCompleted,
+                "Coverage parsed",
+                1,
+                CoverageProgressTotalSteps));
+
             coverageMap = _coverageParser.MapToTrackedFiles(rawCoverage, trackedFiles);
+            progress?.Report(new ChurnProgressEvent(
+                ChurnProgressStage.CoverageMappingCompleted,
+                "Coverage mapped to tracked files",
+                2,
+                CoverageProgressTotalSteps));
         }
 
         var results = new List<FileChurnResult>(trackedFiles.Count);

@@ -75,7 +75,10 @@ public sealed class ChurnAnalysisApp
             ExcludePattern = exclude,
         };
 
-        var results = await _calculator.AnalyzeAsync(options);
+        var results = await SpectreChurnProgress.RunSnapshotAsync(
+            _calculator,
+            options,
+            coverage is not null);
         global::System.Console.Error.WriteLine($"Found {results.Count} files with commit history.");
 
         if (coverage is not null)
@@ -117,37 +120,17 @@ public sealed class ChurnAnalysisApp
         global::System.Console.Error.WriteLine(
             $"Time series mode: {parsed.GranularityLower} chunks from {parsed.From:yyyy-MM-dd} to {parsed.To:yyyy-MM-dd} ({bucketEnds.Count} points).");
 
-        var points = await CollectTimeSeriesPointsAsync(repo, coverage, include, exclude, bucketEnds);
+        var points = await SpectreChurnProgress.RunTimeSeriesAsync(
+            _calculator,
+            repo,
+            coverage,
+            include,
+            exclude,
+            bucketEnds);
         global::System.Console.Error.WriteLine($"Found data across {points.Count} time points.");
 
         var outputText = tsGenerator.Generate(points, repo.FullName);
         await ChurnOutputWriter.WriteAsync(output, outputText);
-    }
-
-    private async Task<List<TimeSeriesPoint>> CollectTimeSeriesPointsAsync(
-        DirectoryInfo repo,
-        FileInfo? coverage,
-        string? include,
-        string? exclude,
-        IReadOnlyList<DateTime> bucketEnds)
-    {
-        var points = new List<TimeSeriesPoint>(bucketEnds.Count);
-        foreach (var asOf in bucketEnds)
-        {
-            global::System.Console.Error.WriteLine($"  Analyzing as of {asOf:yyyy-MM-dd}...");
-            var options = new ChurnAnalysisOptions
-            {
-                RepositoryPath = repo.FullName,
-                CoverageFilePath = coverage?.FullName,
-                IncludePattern = include,
-                ExcludePattern = exclude,
-                AsOf = asOf,
-            };
-            var results = await _calculator.AnalyzeAsync(options);
-            points.Add(new TimeSeriesPoint { AsOf = asOf, Files = results });
-        }
-
-        return points;
     }
 
     private static void LogAnalysisStart(DirectoryInfo repo, FileInfo? coverage)

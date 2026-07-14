@@ -4,6 +4,7 @@ using Xunit;
 
 namespace GitChurnCalculator.Console.Tests;
 
+[Collection("ExitCode")]
 public class ChurnCliRootCommandTests
 {
     [Fact]
