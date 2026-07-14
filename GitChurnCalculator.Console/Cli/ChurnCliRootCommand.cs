@@ -14,7 +14,7 @@ public static class ChurnCliRootCommand
 
         var formatOption = new Option<string>(
             "--format",
-            getDefaultValue: () => "csv",
+            getDefaultValue: () => "table",
             description: $"Output format: {ChurnReportGeneratorFactory.SupportedFormatsList}. Time series also supports graph.");
 
         var coverageOption = new Option<FileInfo?>(
@@ -61,7 +61,7 @@ public static class ChurnCliRootCommand
         rootCommand.SetHandler(async context =>
         {
             var repo = context.ParseResult.GetValueForArgument(repoArgument);
-            var format = context.ParseResult.GetValueForOption(formatOption) ?? "csv";
+            var format = context.ParseResult.GetValueForOption(formatOption) ?? "table";
             var coverage = context.ParseResult.GetValueForOption(coverageOption);
             var output = context.ParseResult.GetValueForOption(outputOption);
             var include = context.ParseResult.GetValueForOption(includeOption);

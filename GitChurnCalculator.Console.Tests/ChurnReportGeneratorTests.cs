@@ -34,6 +34,21 @@ public class ChurnReportGeneratorTests
     }
 
     [Fact]
+    public void Factory_SupportsTableFormat()
+    {
+        Assert.True(ChurnReportGeneratorFactory.TryGet("table", out var generator));
+        Assert.IsType<SpectreConsoleTableChurnReportGenerator>(generator);
+    }
+
+    [Fact]
+    public void SpectreConsoleTableChurn_ReturnsEmptyString()
+    {
+        var gen = new SpectreConsoleTableChurnReportGenerator();
+        var text = gen.Generate(new[] { SampleFile("src/A.cs", 0.5) }, "repo");
+        Assert.Equal(string.Empty, text);
+    }
+
+    [Fact]
     public void Factory_SupportsSarifGithubGitlab()
     {
         Assert.True(ChurnReportGeneratorFactory.TryGet("sarif", out _));
